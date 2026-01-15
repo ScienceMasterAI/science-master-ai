@@ -6,8 +6,8 @@ GOOGLE_API_KEY = "AIzaSyCTBR6jne5xmgcGE5eMHcxpsRxby3JKqKs"
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# අලුත්ම සහ ස්ථිරම මොඩල් එක තෝරාගැනීම
-model = genai.GenerativeModel('gemini-1.5-flash')
+# මෙන්න මෙතන තමයි වෙනස කළේ
+model = genai.GenerativeModel('gemini-1.0-pro')
 
 st.set_page_config(page_title="Science Master AI", page_icon="🔬")
 
@@ -24,21 +24,10 @@ if st.button("පිළිතුර ලබාගන්න"):
                 prompt = f"Please answer the following science question in clear Sinhala language: {user_input}"
                 response = model.generate_content(prompt)
                 
-                if response.text:
-                    st.subheader("පිළිතුර:")
-                    st.write(response.text)
-                else:
-                    st.error("පිළිතුරක් ලබා ගැනීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.")
+                st.subheader("පිළිතුර:")
+                st.write(response.text)
                     
             except Exception as e:
-                # මොඩල් එකේ නම වැරදි නම් මේකෙන් ඒක හදනවා
-                st.error("පද්ධතියේ පොඩි දෝෂයක්. මම ඒක හදනවා...")
-                try:
-                    alt_model = genai.GenerativeModel('gemini-1.0-pro')
-                    response = alt_model.generate_content(prompt)
-                    st.subheader("පිළිතුර:")
-                    st.write(response.text)
-                except:
-                    st.error(f"ඇත්තටම සමාවෙන්න, තාක්ෂණික දෝෂයක් ආවා: {e}")
+                st.error(f"තාක්ෂණික දෝෂයක්: {e}")
     else:
         st.warning("කරුණාකර ප්‍රශ්නයක් ඇතුළත් කරන්න.")
