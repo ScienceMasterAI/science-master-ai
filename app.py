@@ -7,43 +7,54 @@ import re
 
 # --- 1. API සහ මොඩල් සැකසුම් ---
 # මෙතැනට ඔයාගේ අලුත් API Key එක දාන්න
-NEW_API_KEY = "AIzaSyChNlBP6nI1Ep35QN7rFMgyhym8o97c6fo" 
-
+NEW_API_KEY = "ඔයාගේ_අලුත්_API_KEY_එක_මෙතැනට_දාන්න" 
 genai.configure(api_key=NEW_API_KEY)
 
-# වැඩ කරන මොඩල් එකක් තෝරාගැනීම
-def get_best_model():
-    try:
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        for target in ["models/gemini-1.5-flash", "models/gemini-pro"]:
-            if target in available_models: return target
-        return available_models[0]
-    except:
-        return "gemini-pro"
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-model = genai.GenerativeModel(get_best_model())
-
-# --- 2. UI පෙනුම සහ Background ---
+# --- 2. පිරිසිදු සහ නවීන පෙනුම (CSS) ---
 st.set_page_config(page_title="Science Master AI", page_icon="🔬", layout="centered")
 
 st.markdown("""
     <style>
+    /* මුළු පිටුවේම පසුබිම - තද පැහැති විද්‍යාත්මක පෙනුමක් */
     .stApp {
-        background-color: #f0f4f8;
-        background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+        background-color: #0f172a;
+        color: #ffffff;
     }
+    
+    /* ප්‍රධාන මාතෘකාව */
     .main-title {
-        color: #1e3a8a;
+        color: #38bdf8;
         text-align: center;
         font-weight: bold;
-        font-size: 38px;
-        margin-bottom: 20px;
+        font-size: 35px;
+        margin-bottom: 25px;
     }
-    /* Chat Bubbles Styling */
+
+    /* Chat Messages - අකුරු පැහැදිලිව පෙනීමට */
     [data-testid="stChatMessage"] {
-        padding: 15px;
+        background-color: #1e293b !important; /* තද අළු පාට පසුබිම */
+        border: 1px solid #334155;
         border-radius: 15px;
-        margin-bottom: 10px;
+        color: #ffffff !important;
+        margin-bottom: 12px;
+    }
+
+    /* User Message එක වෙනස් පාටකින් */
+    [data-testid="stChatMessage"]:nth-child(even) {
+        background-color: #334155 !important;
+    }
+
+    /* Input Box එක යටටම කර ලස්සන කිරීම */
+    .stChatInputContainer {
+        border-radius: 15px;
+        background-color: #1e293b;
+    }
+    
+    /* අකුරු වල පාට සුදු කිරීමට බල කිරීම */
+    p, span, div {
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -56,46 +67,42 @@ st.markdown("<h1 class='main-title'>🔬 Science Master AI</h1>", unsafe_allow_h
 # --- 3. Sidebar ---
 with st.sidebar:
     st.image("https://i.ibb.co/v4mYpYp/rasanga.jpg", use_container_width=True)
-    if st.button("🗑️ සංවාදය මකන්න"):
+    st.write("---")
+    if st.button("🗑️ Chat එක මකන්න"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 4. සංවාදය පෙන්වීම (පැරණි මැසේජ් පෙන්වීම) ---
+# --- 4. සංවාදය පෙන්වීම ---
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- 5. ප්‍රශ්නය ඇසීම සහ පිළිතුර ලබාදීම ---
+# --- 5. ප්‍රශ්නය සහ පිළිතුර ---
 if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලියන්න..."):
-    # User message එක සේව් කර පෙන්වීම
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Assistant පිළිතුර
     with st.chat_message("assistant"):
-        msg_holder = st.empty() # අකුරු පෙන්වන තැන
+        msg_holder = st.empty()
         
         try:
-            # AI එකෙන් පිළිතුර ලබා ගැනීම
-            response = model.generate_content(f"Explain clearly as a science teacher in Sinhala: {prompt}")
+            # AI පිළිතුර
+            response = model.generate_content(f"Explain as a teacher in Sinhala: {prompt}")
             full_res = response.text
             
-            # Typing Effect (අකුරෙන් අකුර පෙන්වීම)
-            # මෙන්න මෙතනයි කලින් වැරදුණේ - දැන් හරියටම පේනවා
+            # Typing Effect
             displayed_text = ""
             for word in full_res.split():
                 displayed_text += word + " "
-                time.sleep(0.05)
-                msg_holder.markdown(displayed_text + "▌")
+                time.sleep(0.04)
+                # අකුරු ටයිප් වන විට සුදු පාටින් පෙන්වීම
+                msg_holder.markdown(f"<span style='color: white;'>{displayed_text}▌</span>", unsafe_allow_html=True)
             
-            # අවසාන පිළිතුර ස්ථිරව පෙන්වීම
             msg_holder.markdown(full_res)
-
-            # සංවාද ඉතිහාසයට පිළිතුර ඇතුළත් කිරීම
             st.session_state.messages.append({"role": "assistant", "content": full_res})
 
-            # Voice Processing (හඬ සැකසීම)
+            # Voice (හඬ)
             clean_text = re.sub(r'[*()#\-_\[\]\n]', ' ', full_res)
             tts = gTTS(text=clean_text, lang='si')
             tts.save("speech.mp3")
@@ -103,14 +110,3 @@ if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලිය�
 
         except Exception as e:
             st.error(f"දෝෂයක්: {e}")
-
-# --- 6. රූප සටහන් විග්‍රහය ---
-st.write("---")
-with st.expander("🖼️ රූප සටහනක් Upload කර විස්තර අහන්න"):
-    up_img = st.file_uploader("Image Selection", type=["jpg", "png", "jpeg"])
-    if up_img:
-        img = Image.open(up_img)
-        st.image(img, width=300)
-        if st.button("විශ්ලේෂණය කරන්න"):
-            res = model.generate_content(["Describe this science diagram in Sinhala:", img])
-            st.info(res.text)
