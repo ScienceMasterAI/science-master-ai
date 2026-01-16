@@ -1,22 +1,23 @@
+import streamlit as st
 import google.generativeai as genai
 
-# --- API Key එක ඇතුළත් කිරීම ---
-# ආරක්ෂාව සඳහා මෙය අන් අයට පෙනෙන්නට නොතැබීමට වගබලා ගන්න.
+# 1. මුලින්ම API Key එක සැකසීම
 GOOGLE_API_KEY = "AIzaSyAzqgn6qnQHF28ck_a1uGD6CDSVqZEU28A"
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# පිටුවේ සැකසුම් (Page Config)
+# 2. පිටුවේ සැකසුම් (මෙය සැමවිටම මුලින්ම තිබිය යුතුය)
 st.set_page_config(page_title="Science Master AI", page_icon="🔬", layout="centered")
 
-# පෙනුම ලස්සන කිරීමට CSS
+# Custom CSS - පෙනුම ලස්සන කිරීමට
 st.markdown("""
     <style>
-    .main-title { color: #1e3a8a; text-align: center; font-weight: bold; font-size: 35px; }
-    .stButton>button { width: 100%; border-radius: 8px; background-color: #1e3a8a; color: white; height: 50px; font-size: 18px; }
+    .stApp { background-color: #f8fafc; }
+    .main-title { color: #1e3a8a; text-align: center; font-weight: bold; font-size: 30px; }
+    .stButton>button { width: 100%; border-radius: 10px; background-color: #1e3a8a; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# පැති තීරුව (Sidebar)
+# --- Sidebar (පැති තීරුව) ---
 with st.sidebar:
     st.markdown("<h2 style='text-align: center;'>නිර්මාණකරු</h2>", unsafe_allow_html=True)
     try:
@@ -25,34 +26,27 @@ with st.sidebar:
         st.info("පින්තූරය පූරණය කළ නොහැක.")
     st.markdown("<p style='text-align: center; font-weight: bold;'>Rasanga Kalamba Arachchi</p>", unsafe_allow_html=True)
     st.markdown("---")
-    st.write("මෙම AI පද්ධතිය මගින් ඕනෑම විද්‍යා ප්‍රශ්නයක් විෂය නිර්දේශයට අනුව පැහැදිලි කර දේ.")
 
-# ප්‍රධාන කොටස
-st.markdown("<div class='main-title'>🔬 Science Master AI</div>", unsafe_allow_html=True)
+# --- ප්‍රධාන පිටුව ---
+st.markdown("<h1 class='main-title'>🔬 Science Master AI</h1>", unsafe_allow_html=True)
 st.write("---")
 
-user_input = st.text_area("ඔබේ විද්‍යා ප්‍රශ්නය සිංහලෙන් ඇතුළත් කරන්න:", height=150, placeholder="උදා: ආලෝකයේ වර්තනය යනු කුමක්ද?")
+user_input = st.text_area("ඔබේ විද්‍යා ප්‍රශ්නය සිංහලෙන් ලියන්න:", placeholder="උදා: සූර්ය බලශක්තිය නිපදවන්නේ කෙසේද?")
 
-if st.button("පිළිතුර ලබාගන්න ✨"):
+if st.button("විශ්ලේෂණය කර පිළිතුර ලබාගන්න 🚀"):
     if user_input:
         with st.spinner('පිළිතුර සකස් කරමින් පවතී...'):
             try:
-                # නවතම 1.5-flash මාදිලිය භාවිතා කරමු
+                # වැඩ කරන මොඩල් එකක් තෝරා ගැනීම
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                # Instruction එකක් සමඟ පණිවිඩය යැවීම
-                prompt = f"You are a science teacher. Explain the following question in detail using Sinhala language, including key points for exams: {user_input}"
-                response = model.generate_content(prompt)
+                instruction = "You are Science Master AI. Answer the question in Sinhala deeply as a teacher."
+                response = model.generate_content(f"{instruction}\n\nQuestion: {user_input}")
                 
                 st.markdown("### 💡 පිළිතුර:")
-                st.info(response.text)
-                
+                st.write(response.text)
             except Exception as e:
-                # වැරැද්දක් ආවොත් එය පෙන්වීමට
-                if "403" in str(e):
-                    st.error("API Key එක නැවතත් අවලංගු වී ඇත. කරුණාකර අලුත් Key එකක් ලබා ගන්න.")
-                else:
-                    st.error(f"දෝෂයක් සිදුවිය: {str(e)}")
+                st.error(f"දෝෂයක් සිදුවිය: {str(e)}")
     else:
         st.warning("කරුණාකර ප්‍රශ්නයක් ඇතුළත් කරන්න.")
 
