@@ -1,94 +1,84 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import PyPDF2
 from gtts import gTTS
 import time
-import os
 
 # --- 1. API සැකසුම් ---
 GOOGLE_API_KEY = "AIzaSyAzqgn6qnQHF28ck_a1uGD6CDSVqZEU28A"
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- 2. පිටුවේ මූලික සැකසුම් ---
-st.set_page_config(page_title="Science Master AI Pro", page_icon="🔬", layout="centered")
+# --- 2. වැඩ කරන මොඩල් එකක් ස්වයංක්‍රීයව හඳුනාගැනීම ---
+def get_safe_model():
+    try:
+        # පද්ධතියේ ඇති සියලුම මොඩල් ලැයිස්තුව ලබා ගනී
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        # පිළිවෙලින් මේවා තිබේදැයි පරීක්ෂා කරයි
+        for target in ["models/gemini-1.5-flash", "models/gemini-1.5-flash-latest", "models/gemini-pro"]:
+            if target in available_models:
+                return target
+        return available_models[0] # කිසිවක් නැත්නම් පළමු මොඩල් එක ලබා දෙයි
+    except:
+        return "gemini-pro" # වැරදීමක් වුණොත් Default ලෙස gemini-pro ලබා දෙයි
+
+# --- 3. UI සැකසුම් ---
+st.set_page_config(page_title="Science Master AI", page_icon="🔬")
+st.markdown("<h1 style='text-align: center; color: #1e3a8a;'>🔬 Science Master AI</h1>", unsafe_allow_html=True)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 3. UI එක හැඩගැන්වීම ---
-st.markdown("""
-    <style>
-    .stApp { background-color: #f8fafc; }
-    .main-title { color: #1e3a8a; text-align: center; font-weight: bold; font-size: 32px; }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.markdown("<h1 class='main-title'>🔬 Science Master AI Pro</h1>", unsafe_allow_html=True)
-
-# --- 4. Sidebar ---
-with st.sidebar:
-    st.image("https://i.ibb.co/v4mYpYp/rasanga.jpg", use_container_width=True)
-    language = st.radio("භාෂාව / Language:", ["සිංහල", "English"])
-    if st.button("Clear Chat"):
-        st.session_state.messages = []
-        st.rerun()
-
-# --- 5. Chat Interface ---
+# --- 4. Chat පෙන්වීම ---
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("ඔබේ විද්‍යා ගැටලුව ලියන්න..."):
+# --- 5. ප්‍රශ්නය ඇතුළත් කිරීම ---
+if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලියන්න..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
+        placeholder = st.empty()
+        full_res = ""
         
         try:
-            # මෙහි නම gemini-1.5-flash-latest ලෙස භාවිතා කිරීමෙන් 404 දෝෂය මගහැරේ
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            # ආරක්ෂිතව මොඩල් එක තෝරා ගනී
+            working_model = get_safe_model()
+            model = genai.GenerativeModel(working_model)
             
-            instruction = "Explain as a science teacher in Sinhala." if language == "සිංහල" else "Explain as a science teacher in English."
-            response = model.generate_content(f"{instruction}\nQuestion: {prompt}")
+            # AI පිළිතුර ලබා ගැනීම
+            response = model.generate_content(f"You are a science teacher. Explain in Sinhala: {prompt}")
             
             # Typing Effect
-            for chunk in response.text.split():
-                full_response += chunk + " "
-                time.sleep(0.04)
-                message_placeholder.markdown(full_response + "▌")
+            for word in response.text.split():
+                full_res += word + " "
+                time.sleep(0.05)
+                placeholder.markdown(full_res + "▌")
             
-            message_placeholder.markdown(full_response)
+            placeholder.markdown(full_res)
 
-            # Voice Generation
-            tts_lang = 'si' if language == "සිංහල" else 'en'
-            tts = gTTS(text=full_response, lang=tts_lang)
-            tts.save("speech.mp3")
-            st.audio("speech.mp3")
+            # Voice එකතු කිරීම
+            tts = gTTS(text=full_res, lang='si')
+            tts.save("s.mp3")
+            st.audio("s.mp3")
 
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            st.session_state.messages.append({"role": "assistant", "content": full_res})
+            st.caption(f"භාවිතා කළේ: {working_model}")
 
         except Exception as e:
-            # 404 Error එකක් ආවොත් පරණ gemini-pro එකට මාරු වීම
-            try:
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
-            except:
-                st.error(f"දෝෂයක් සිදුවිය: {e}")
+            st.error(f"දෝෂයක්: {e}")
 
 # --- 6. රූප සටහන් විග්‍රහය ---
 st.write("---")
-with st.expander("🖼️ රූප සටහනක් Upload කරන්න"):
-    uploaded_img = st.file_uploader("රූපය තෝරන්න", type=["jpg", "png", "jpeg"])
-    if uploaded_img:
-        img = Image.open(uploaded_img)
+with st.expander("🖼️ පින්තූරයක් Upload කරන්න"):
+    up_img = st.file_uploader("Image", type=["jpg", "png"])
+    if up_img:
+        img = Image.open(up_img)
         st.image(img, width=250)
-        if st.button("රූපය විග්‍රහ කරන්න"):
-            # රූප සඳහාද Flash-Latest භාවිතා කිරීම
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            res = model.generate_content(["Describe this science diagram in Sinhala:", img])
+        if st.button("විස්තර කරන්න"):
+            model = genai.GenerativeModel(get_safe_model())
+            res = model.generate_content(["Explain this science diagram in Sinhala:", img])
             st.info(res.text)
