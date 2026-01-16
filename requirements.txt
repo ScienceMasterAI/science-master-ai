@@ -3,5 +3,3 @@ google-generativeai
 pillow
 streamlit-lottie
 requests
-gTTS
-PyPDF2
