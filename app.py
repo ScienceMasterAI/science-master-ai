@@ -1,4 +1,3 @@
-import streamlit as st
 import google.generativeai as genai
 
 # --- API Key එක ඇතුළත් කිරීම ---
