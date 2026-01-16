@@ -1,5 +1,2 @@
 streamlit
-google-generative-ai
-pillow
-gTTS
-pymupdf
+google-generativeai
