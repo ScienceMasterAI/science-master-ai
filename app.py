@@ -6,145 +6,106 @@ from gtts import gTTS
 import re
 import os
 
-# --- 1. CONFIGURATION & MODERN THEME ---
+# --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Rasanga Science Legend AI", page_icon="🧬", layout="wide")
 
-# Session State (දත්ත පවත්වාගෙන යාමට)
+# Session State
 if "user_points" not in st.session_state: st.session_state.user_points = 0
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# Premium UI පෙනුම සඳහා CSS
+# Modern UI
 st.markdown("""
 <style>
 .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; }
-[data-testid="stSidebar"] { background-color: #1e293b; border-right: 2px solid #38bdf8; }
-.points-card { background: linear-gradient(45deg, #0ea5e9, #2563eb); padding: 15px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-.stButton>button { background: #38bdf8; color: #000; border-radius: 10px; font-weight: bold; border: none; width: 100%; }
+.points-card { background: linear-gradient(45deg, #0ea5e9, #2563eb); padding: 15px; border-radius: 15px; text-align: center; font-weight: bold; }
+.stButton>button { background: #38bdf8; color: #000; border-radius: 10px; font-weight: bold; width: 100%; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. AI SETUP ---
+# --- 2. AI SETUP (Version Force Fix) ---
 def setup_ai():
-    # Secrets පරීක්ෂාව
     if "GEMINI_API_KEY" not in st.secrets:
-        st.error("දෝෂයයි: කරුණාකර Streamlit Secrets වල 'GEMINI_API_KEY' ඇතුළත් කරන්න.")
+        st.error("දෝෂයයි: Streamlit Secrets වල 'GEMINI_API_KEY' ඇතුළත් කර නැත.")
         st.stop()
     
-    # 404 Error එක මගහැරීමට transport='rest' භාවිතා කර ඇත
+    # මෙතන තමයි වැදගත්ම දේ: transport='rest' දාලා API එකට force කරනවා
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport='rest')
     
-    system_prompt = (
-        "ඔබේ නම Rasanga Science Legend AI වේ. ඔබේ නිර්මාතෘ Rasanga Kalamba arachchi වේ. "
-        "ඔබ ශ්‍රී ලංකාවේ විද්‍යා ගුරුවරයෙකු ලෙස ඉතා සරලව සිංහලෙන් උගන්වන්න. "
-        "රූප සටහන් සහ PDF විශ්ලේෂණය කර පැහැදිලි කරන්න. විභාග ප්‍රශ්න වලට Marking Scheme එකට අනුව පිළිතුරු දෙන්න."
-    )
-
-    # නිවැරදි Model Configuration එක
-    return genai.GenerativeModel(
+    # Model එක create කරනකොට system prompt එක ඇතුළෙන්ම දෙනවා
+    model = genai.GenerativeModel(
         model_name='gemini-1.5-flash',
-        system_instruction=system_prompt
+        system_instruction="ඔබේ නම Rasanga Science Legend AI. නිර්මාතෘ Rasanga Kalamba arachchi. ශ්‍රී ලංකාවේ විෂය නිර්දේශයට අනුව සිංහලෙන් උගන්වන විද්‍යා ගුරුවරයෙකි."
     )
+    return model
 
-# AI සම්බන්ධ කිරීම
 try:
     model = setup_ai()
 except Exception as e:
-    st.error(f"AI සම්බන්ධ වීමේ දෝෂයකි: {str(e)}")
+    st.error(f"AI Setup Error: {str(e)}")
 
-# --- 3. HELPER FUNCTIONS ---
+# --- 3. FUNCTIONS ---
 def extract_text_from_pdf(pdf_file):
     try:
         doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
-        text = " ".join([page.get_text() for page in doc])
-        return text if text.strip() else "PDF එකේ අකුරු හඳුනාගත නොහැක."
-    except:
-        return "PDF කියවීමට නොහැක."
+        return " ".join([page.get_text() for page in doc])
+    except: return "PDF කියවීමට නොහැක."
 
 def generate_audio(text):
     try:
-        # සිංහල කොටස් පමණක් හඬට හැරවීම
         clean_txt = re.sub(r'[^\u0D80-\u0DFF\s.]', '', text)
         if clean_txt.strip():
             tts = gTTS(text=clean_txt[:200], lang='si')
             tts.save("voice.mp3")
             return "voice.mp3"
-    except:
-        return None
-    return None
+    except: return None
 
-# --- 4. SIDEBAR ---
+# --- 4. UI & LOGIC ---
 with st.sidebar:
-    st.title("🧬 Rasanga Science Pro")
+    st.title("🧬 Science Pro")
     st.markdown(f"<div class='points-card'>🏆 ලකුණු: {st.session_state.user_points}</div>", unsafe_allow_html=True)
-    st.write("---")
-    mode = st.radio("අංශය තෝරන්න:", ["AI සාකච්ඡාව", "🎯 විභාග Target ප්‍රශ්න", "🏆 Legend Leaderboard"])
-    st.write("---")
-    uploaded_file = st.file_uploader("රූප සටහන් / PDF (Past Papers)", type=["jpg", "png", "jpeg", "pdf"])
-    
-    if st.button("🗑️ සංවාදය මකන්න"):
+    mode = st.radio("අංශය:", ["AI සාකච්ඡාව", "🎯 විභාග Target", "🏆 Leaderboard"])
+    uploaded_file = st.file_uploader("රූප සටහන් / PDF", type=["jpg", "png", "jpeg", "pdf"])
+    if st.button("🗑️ Chat Clear"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 5. APP MODES ---
-
-# 🎯 TARGET QUESTIONS
-if mode == "🎯 විභාග Target ප්‍රශ්න":
-    st.header("🎯 විභාග ඉලක්කගත ප්‍රශ්න")
-    lesson = st.text_input("පාඩමේ නම ලියන්න (උදා: ජෛව ක්‍රියාවලි):")
-    if st.button("ප්‍රශ්න පත්‍රය සාදන්න"):
-        st.session_state.user_points += 10
-        with st.spinner("ප්‍රශ්න සකසමින්..."):
-            try:
-                res = model.generate_content(f"{lesson} පාඩමට අදාළව විභාගයට ඒමට හැකි ව්‍යුහගත රචනා ප්‍රශ්නයක් සහ පිළිතුරු සිංහලෙන් දෙන්න.")
-                st.markdown(res.text)
-            except Exception as e:
-                st.error(f"දෝෂයක් සිදු විය: {str(e)}")
-
-# 🏆 LEADERBOARD
-elif mode == "🏆 Legend Leaderboard":
-    st.header("🏆 සයන්ස් ලෙජන්ඩ්ස් පුවරුව")
-    st.markdown(f"""
-    <div style='background:rgba(255,255,255,0.1); padding:20px; border-radius:10px;'>
-    <p>🥇 1. <b>Rasanga Kalamba arachchi</b> - 5000 pts</p>
-    <p>🥈 2. සචින්ත - 1250 pts</p>
-    <p>🥉 3. <b>ඔබ (You)</b> - {st.session_state.user_points} pts</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 💬 CHAT MODE
-else:
+if mode == "AI සාකච්ඡාව":
     st.title("🎓 Rasanga Science Legend AI")
-    st.caption("ශ්‍රී ලංකාවේ විද්‍යා අධ්‍යාපනය සඳහා වූ AI සහකරු")
-
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-    if prompt := st.chat_input("විද්‍යාව ගැටලුව මෙතැන ලියන්න..."):
+    if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලියන්න..."):
         st.session_state.user_points += 2
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            input_context = [prompt]
-            
-            # ගොනු විශ්ලේෂණය (Images/PDF)
+            input_data = [prompt]
             if uploaded_file:
                 if uploaded_file.type == "application/pdf":
-                    pdf_txt = extract_text_from_pdf(uploaded_file)
-                    input_context.append(f"PDF Context: {pdf_txt}")
+                    input_data.append(f"PDF Content: {extract_text_from_pdf(uploaded_file)}")
                 else:
-                    img = Image.open(uploaded_file)
-                    input_context.append(img)
+                    input_data.append(Image.open(uploaded_file))
 
             try:
-                response = model.generate_content(input_context)
+                # generate_content එකට force කරනවා stable version එකට
+                response = model.generate_content(input_data)
                 ans = response.text
                 st.markdown(ans)
                 st.session_state.messages.append({"role": "assistant", "content": ans})
                 
-                # හඬ සහාය
-                audio_path = generate_audio(ans)
-                if audio_path: st.audio(audio_path)
-                
+                audio = generate_audio(ans)
+                if audio: st.audio(audio)
             except Exception as e:
-                st.error(f"දෝෂයක් සිදු විය: {str(e)}")
+                st.error(f"දෝෂයක්: {str(e)}")
+
+elif mode == "🎯 විභාග Target":
+    st.header("🎯 විභාග ඉලක්කගත ප්‍රශ්න")
+    lesson = st.text_input("පාඩම:")
+    if st.button("ප්‍රශ්නයක් හදන්න"):
+        res = model.generate_content(f"{lesson} පාඩමට ප්‍රශ්නයක් සහ පිළිතුරු දෙන්න.")
+        st.markdown(res.text)
+
+else:
+    st.header("🏆 Legend Leaderboard")
+    st.write(f"ඔබේ ලකුණු මට්ටම: {st.session_state.user_points}")
