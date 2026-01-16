@@ -1,5 +1,2 @@
-streamlit
-google-generativeai
-pillow
-streamlit-lottie
-requests
+streamlit>=1.30.0
+google-generativeai>=0.4.0
