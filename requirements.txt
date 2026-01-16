@@ -1,5 +1,5 @@
 streamlit
 google-generative-ai
 pillow
-gtts
+gTTS
 pymupdf
