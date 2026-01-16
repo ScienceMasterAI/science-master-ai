@@ -15,7 +15,7 @@ genai.configure(api_key=NEW_API_KEY)
 def get_best_model():
     try:
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        for target in ["models/gemini-1.5-flash", "models/gemini-1.5-flash-latest", "models/gemini-pro"]:
+        for target in ["models/gemini-1.5-flash", "models/gemini-pro"]:
             if target in available_models: return target
         return available_models[0]
     except:
@@ -28,12 +28,10 @@ st.set_page_config(page_title="Science Master AI", page_icon="🔬", layout="cen
 
 st.markdown("""
     <style>
-    /* පිටුවේ පසුබිම (Background) */
     .stApp {
         background-color: #f0f4f8;
-        background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+        background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
     }
-    /* මාතෘකාව */
     .main-title {
         color: #1e3a8a;
         text-align: center;
@@ -41,9 +39,12 @@ st.markdown("""
         font-size: 38px;
         margin-bottom: 20px;
     }
-    /* Chat Bubbles */
-    [data-testid="stChatMessage"]:nth-child(even) { background-color: #e0f2fe !important; border-radius: 15px; }
-    [data-testid="stChatMessage"]:nth-child(odd) { background-color: #ffffff !important; border-radius: 15px; border: 1px solid #e2e8f0; }
+    /* Chat Bubbles Styling */
+    [data-testid="stChatMessage"] {
+        padding: 15px;
+        border-radius: 15px;
+        margin-bottom: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -59,7 +60,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# --- 4. සංවාදය පෙන්වීම (Display Chat History) ---
+# --- 4. සංවාදය පෙන්වීම (පැරණි මැසේජ් පෙන්වීම) ---
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -73,7 +74,7 @@ if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලිය�
 
     # Assistant පිළිතුර
     with st.chat_message("assistant"):
-        msg_holder = st.empty() # අකුරු ටයිප් වෙන තැන
+        msg_holder = st.empty() # අකුරු පෙන්වන තැන
         
         try:
             # AI එකෙන් පිළිතුර ලබා ගැනීම
@@ -81,6 +82,7 @@ if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලිය�
             full_res = response.text
             
             # Typing Effect (අකුරෙන් අකුර පෙන්වීම)
+            # මෙන්න මෙතනයි කලින් වැරදුණේ - දැන් හරියටම පේනවා
             displayed_text = ""
             for word in full_res.split():
                 displayed_text += word + " "
@@ -90,7 +92,7 @@ if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලිය�
             # අවසාන පිළිතුර ස්ථිරව පෙන්වීම
             msg_holder.markdown(full_res)
 
-            # සංවාද ඉතිහාසයට පිළිතුර ඇතුළත් කිරීම (මෙය වැදගත්!)
+            # සංවාද ඉතිහාසයට පිළිතුර ඇතුළත් කිරීම
             st.session_state.messages.append({"role": "assistant", "content": full_res})
 
             # Voice Processing (හඬ සැකසීම)
@@ -110,5 +112,5 @@ with st.expander("🖼️ රූප සටහනක් Upload කර විස�
         img = Image.open(up_img)
         st.image(img, width=300)
         if st.button("විශ්ලේෂණය කරන්න"):
-            res = model.generate_content(["Explain this science diagram in Sinhala:", img])
+            res = model.generate_content(["Describe this science diagram in Sinhala:", img])
             st.info(res.text)
