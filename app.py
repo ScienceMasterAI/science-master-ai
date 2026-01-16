@@ -7,7 +7,7 @@ import re
 
 # --- 1. API සහ මොඩල් සැකසුම් ---
 # මෙතැනට ඔයාගේ අලුත් API Key එක දාන්න
-NEW_API_KEY = "ඔයාගේ_අලුත්_API_KEY_එක_මෙතැනට_දාන්න" 
+NEW_API_KEY = "AIzaSyChNlBP6nI1Ep35QN7rFMgyhym8o97c6fo" 
 genai.configure(api_key=NEW_API_KEY)
 
 model = genai.GenerativeModel('gemini-1.5-flash-latest')
