@@ -25,12 +25,13 @@ st.markdown("""
 
 # --- 2. AI SETUP ---
 def setup_ai():
+    # Secrets පරීක්ෂාව
     if "GEMINI_API_KEY" not in st.secrets:
-        st.error("කරුණාකර Streamlit Secrets වල 'GEMINI_API_KEY' ඇතුළත් කරන්න.")
+        st.error("දෝෂයයි: කරුණාකර Streamlit Secrets වල 'GEMINI_API_KEY' ඇතුළත් කරන්න.")
         st.stop()
     
-    # API එක නිවැරදිව configure කිරීම
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    # 404 Error එක මගහැරීමට transport='rest' භාවිතා කර ඇත
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport='rest')
     
     system_prompt = (
         "ඔබේ නම Rasanga Science Legend AI වේ. ඔබේ නිර්මාතෘ Rasanga Kalamba arachchi වේ. "
@@ -38,7 +39,7 @@ def setup_ai():
         "රූප සටහන් සහ PDF විශ්ලේෂණය කර පැහැදිලි කරන්න. විභාග ප්‍රශ්න වලට Marking Scheme එකට අනුව පිළිතුරු දෙන්න."
     )
 
-    # 404 Error එක මග හැරීමට මෙලෙස Model එක සකසන්න
+    # නිවැරදි Model Configuration එක
     return genai.GenerativeModel(
         model_name='gemini-1.5-flash',
         system_instruction=system_prompt
@@ -61,7 +62,7 @@ def extract_text_from_pdf(pdf_file):
 
 def generate_audio(text):
     try:
-        # සිංහල අකුරු පමණක් වෙන් කර ගැනීම (gTTS සිංහල සඳහා)
+        # සිංහල කොටස් පමණක් හඬට හැරවීම
         clean_txt = re.sub(r'[^\u0D80-\u0DFF\s.]', '', text)
         if clean_txt.strip():
             tts = gTTS(text=clean_txt[:200], lang='si')
@@ -93,8 +94,11 @@ if mode == "🎯 විභාග Target ප්‍රශ්න":
     if st.button("ප්‍රශ්න පත්‍රය සාදන්න"):
         st.session_state.user_points += 10
         with st.spinner("ප්‍රශ්න සකසමින්..."):
-            res = model.generate_content(f"{lesson} පාඩමට අදාළව විභාගයට ඒමට හැකි ව්‍යුහගත රචනා ප්‍රශ්නයක් සහ පිළිතුරු සිංහලෙන් දෙන්න.")
-            st.markdown(res.text)
+            try:
+                res = model.generate_content(f"{lesson} පාඩමට අදාළව විභාගයට ඒමට හැකි ව්‍යුහගත රචනා ප්‍රශ්නයක් සහ පිළිතුරු සිංහලෙන් දෙන්න.")
+                st.markdown(res.text)
+            except Exception as e:
+                st.error(f"දෝෂයක් සිදු විය: {str(e)}")
 
 # 🏆 LEADERBOARD
 elif mode == "🏆 Legend Leaderboard":
@@ -123,17 +127,16 @@ else:
         with st.chat_message("assistant"):
             input_context = [prompt]
             
-            # ගොනු විශ්ලේෂණය
+            # ගොනු විශ්ලේෂණය (Images/PDF)
             if uploaded_file:
                 if uploaded_file.type == "application/pdf":
                     pdf_txt = extract_text_from_pdf(uploaded_file)
-                    input_context.append(f"පහත PDF එකේ අන්තර්ගතය අනුව පිළිතුරු දෙන්න: {pdf_txt}")
+                    input_context.append(f"PDF Context: {pdf_txt}")
                 else:
                     img = Image.open(uploaded_file)
                     input_context.append(img)
 
             try:
-                # මෙහිදී 'input_context' එක කෙලින්ම යැවිය හැක
                 response = model.generate_content(input_context)
                 ans = response.text
                 st.markdown(ans)
@@ -144,4 +147,4 @@ else:
                 if audio_path: st.audio(audio_path)
                 
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error(f"දෝෂයක් සිදු විය: {str(e)}")
