@@ -12,16 +12,16 @@ st.set_page_config(page_title="Rasanga Science Legend AI", page_icon="🧬", lay
 if "user_points" not in st.session_state: st.session_state.user_points = 0
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- 2. AI SETUP (The Fix) ---
+# --- 2. THE FINAL AI FIX ---
 def setup_ai():
     if "GEMINI_API_KEY" not in st.secrets:
         st.error("API Key එක Secrets වල දාලා නැහැ!")
         st.stop()
     
-    # පරණ v1beta එකට යන එක නවත්තන්න මේක අනිවාර්යයි
+    # පරණ v1beta එකට යන එක බලෙන් නවත්වන පේළිය
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport='rest')
     
-    # Model එක හඳුන්වා දීම
+    # Model එක create කිරීම (මෙහි 'models/' කොටස ඉවත් කර ඇත)
     model = genai.GenerativeModel(
         model_name='gemini-1.5-flash',
         system_instruction="ඔබේ නම Rasanga Science Legend AI. ඔබ ශ්‍රී ලංකාවේ විද්‍යා ගුරුවරයෙකි. සියල්ල සිංහලෙන් පැහැදිලි කරන්න."
@@ -33,7 +33,7 @@ try:
 except Exception as e:
     st.error(f"Setup Error: {str(e)}")
 
-# --- 3. HELPER FUNCTIONS ---
+# --- 3. FUNCTIONS ---
 def extract_text_from_pdf(pdf_file):
     try:
         doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
@@ -60,7 +60,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# Chat history පෙන්වීම
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
@@ -78,15 +77,13 @@ if prompt := st.chat_input("ප්‍රශ්නය මෙතැන ලිය�
                 input_data.append(Image.open(uploaded_file))
 
         try:
-            # API Call එක
             response = model.generate_content(input_data)
             ans = response.text
             st.markdown(ans)
             st.session_state.messages.append({"role": "assistant", "content": ans})
             
-            # Audio (optional)
             audio = generate_audio(ans)
             if audio: st.audio(audio)
         except Exception as e:
             st.error(f"දෝෂයක්: {str(e)}")
-            st.info("මචං, මේ error එක ආවොත් අනිවාර්යයෙන්ම 'Reboot App' එක දෙන්න.")
+            st.info("මචං, මේක හදාගන්න අනිවාර්යයෙන්ම පහළ පියවර බලන්න.")
